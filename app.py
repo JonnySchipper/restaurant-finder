@@ -12,13 +12,15 @@ gmaps = googlemaps.Client(key=API_KEY)
 # Initialize geocoder
 geolocator = Nominatim(user_agent="restaurant_finder")
 
-def weighted_rating(rating, num_reviews, discount_factor=0.8, threshold=400):
-    """Calculate weighted rating to favor higher review counts."""
-    if num_reviews <= threshold:
-        return rating * discount_factor
+def calculate_score(rating: float, review_count: int) -> float:
+    """Calculate a score that reduces the value of the first 200 reviews and rewards higher counts."""
+    if review_count <= 200:
+        score = rating * (review_count / 200)
     else:
-        weighted_factor = (threshold * discount_factor + (num_reviews - threshold)) / num_reviews
-        return rating * weighted_factor
+        excess_reviews = review_count - 200
+        bonus = excess_reviews * 0.001
+        score = rating + min(bonus, 1.0)
+    return round(score, 2)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -51,18 +53,18 @@ def index():
                 num_reviews = result.get('user_ratings_total', 0)
                 address = result.get('formatted_address', 'No address available')
 
-                # Calculate weighted rating
-                weighted_score = weighted_rating(rating, num_reviews) if rating and num_reviews else 0
+                # Calculate score using new function
+                score = calculate_score(rating, num_reviews) if rating and num_reviews else 0
 
                 restaurants.append({
                     'name': name,
                     'rating': rating,
                     'num_reviews': num_reviews,
-                    'weighted_score': weighted_score,
+                    'weighted_score': score,
                     'address': address
                 })
 
-            # Sort by weighted score (descending)
+            # Sort by score (descending)
             restaurants.sort(key=lambda x: x['weighted_score'], reverse=True)
 
             return render_template('results.html', restaurants=restaurants, zipcode=zipcode)
