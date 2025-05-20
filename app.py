@@ -37,7 +37,7 @@ def index():
             # Search for restaurants
             places_result = gmaps.places_nearby(
                 location=(lat, lng),
-                radius=10000,  # 5km radius
+                radius=7000,  # 7km radius
                 type='restaurant'
             )
 
