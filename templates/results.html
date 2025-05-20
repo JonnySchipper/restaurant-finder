@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-6">Top Restaurants in {{ zipcode }}</h1>
+        {% if restaurants %}
+            <ul class="space-y-4">
+                {% for restaurant in restaurants %}
+                    <li class="border-b pb-4">
+                        <h2 class="text-xl font-semibold">{{ restaurant.name }}</h2>
+                        <p class="text-gray-600">Address: {{ restaurant.address }}</p>
+                        <p class="text-gray-600">Rating: {{ restaurant.rating|round(1) }} stars ({{ restaurant.num_reviews }} reviews)</p>
+                        <p class="text-gray-600">Weighted Score: {{ restaurant.weighted_score|round(2) }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-gray-600">No restaurants found for this zip code.</p>
+        {% endif %}
+        <a href="/" class="mt-6 inline-block bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700">Search Again</a>
+    </div>
+</body>
+</html>
