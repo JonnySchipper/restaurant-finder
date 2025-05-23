@@ -26,7 +26,12 @@ def calculate_score(rating: float, review_count: int) -> float:
 def index():
     if request.method == 'POST':
         zipcode = request.form['zipcode']
+        searchquery = request.form.get('searchquery', 'restaurant')  # Default to 'restaurant' if not provided
+        radius = request.form.get('radius', 4.35)  # Default to 4.35 miles (~7000 meters) if not provided
         try:
+            # Convert radius to meters (1 mile = 1609.34 meters)
+            radius = int(float(radius) * 1609.34)
+
             # Convert zip code to coordinates
             location = geolocator.geocode(f"{zipcode}, USA")
             if not location:
@@ -34,11 +39,11 @@ def index():
             
             lat, lng = location.latitude, location.longitude
 
-            # Search for restaurants
+            # Search for places based on query
             places_result = gmaps.places_nearby(
                 location=(lat, lng),
-                radius=7000,  # 7km radius
-                type='restaurant'
+                radius=radius,  # Use the user-provided radius
+                keyword=searchquery  # Use the search query
             )
 
             restaurants = []
@@ -67,7 +72,7 @@ def index():
             # Sort by score (descending)
             restaurants.sort(key=lambda x: x['weighted_score'], reverse=True)
 
-            return render_template('results.html', restaurants=restaurants, zipcode=zipcode)
+            return render_template('results.html', restaurants=restaurants, zipcode=zipcode, searchquery=searchquery, radius=radius)
         
         except Exception as e:
             return render_template('index.html', error=str(e))

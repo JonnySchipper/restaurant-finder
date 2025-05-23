@@ -14,11 +14,27 @@
                 <label for="zipcode" class="block text-sm font-medium text-gray-700">Enter City and State or Zip Code</label>
                 <input type="text" name="zipcode" id="zipcode" class="mt-1 p-2 w-full border rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Orlando, FL or 33897" required>
             </div>
+            <div class="mb-4"></div>
+                <label for="searchQuery" class="block text-sm font-medium text-gray-700">What are you looking for?</label>
+                <input type="text" name="searchQuery" id="searchQuery" class="mt-1 p-2 w-full border rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Pizza, Burgers, Sushi" required>
+            </div>
+            <div class="mb-4"></div>
+                <label for="distance" class="block text-sm font-medium text-gray-700">Select Distance (1-20 miles)</label>
+                <input type="range" name="distance" id="distance" min="1" max="20" value="10" class="w-full mt-1">
+                <p class="text-sm text-gray-500 mt-2 text-center">Selected Distance: <span id="distanceValue">10</span> miles</p>
+            </div>
             <button type="submit" class="w-full bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700">Search</button>
         </form>
         {% if error %}
             <p class="mt-4 text-red-500 text-center">{{ error }}</p>
         {% endif %}
     </div>
+    <script>
+        const distanceInput = document.getElementById('distance');
+        const distanceValue = document.getElementById('distanceValue');
+        distanceInput.addEventListener('input', () => {
+            distanceValue.textContent = distanceInput.value;
+        });
+    </script>
 </body>
 </html>
