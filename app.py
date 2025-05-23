@@ -1,9 +1,18 @@
 import os
 import googlemaps
 from flask import Flask, request, render_template
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from geopy.geocoders import Nominatim
 
 app = Flask(__name__)
+
+# Initialize Flask-Limiter
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["10 per day"]  # Limit to 10 requests per day per IP
+)
 
 # Initialize Google Maps client
 API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -23,6 +32,7 @@ def calculate_score(rating: float, review_count: int) -> float:
     return round(score, 2)
 
 @app.route('/', methods=['GET', 'POST'])
+@limiter.limit("10 per day")  # Explicitly apply limit to this route
 def index():
     if request.method == 'POST':
         zipcode = request.form['zipcode']
@@ -82,6 +92,11 @@ def index():
             return render_template('index.html', error=str(e))
     
     return render_template('index.html')
+
+# Custom error handler for rate limit exceeded
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return render_template('index.html', error="You've reached the daily search limit (10 searches). Please try again tomorrow."), 429
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
