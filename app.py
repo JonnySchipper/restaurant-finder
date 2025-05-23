@@ -4,6 +4,8 @@ from flask import Flask, request, render_template
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from geopy.geocoders import Nominatim
+from datetime import datetime
+from time import mktime
 
 app = Flask(__name__)
 
@@ -31,9 +33,31 @@ def calculate_score(rating: float, review_count: int) -> float:
         score = rating + min(bonus, 1.0)
     return round(score, 2)
 
+def get_remaining_queries():
+    """Get the number of remaining queries for the current user's IP for today."""
+    try:
+        # Get the current user's IP
+        ip = get_remote_address()
+        # Flask-Limiter key for daily limit: <key_func>:route:<limit>
+        limit_key = f"{ip}:/:10 per day"
+        # Get the current count from storage
+        storage = limiter.limiter.storage
+        # Flask-Limiter stores counts in a hash with timestamped windows
+        # We need to check the current day's window
+        window = int(mktime(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timetuple()))
+        count = storage.get(f"{limit_key}:{window}") or 0
+        remaining = max(0, 10 - int(count))  # Calculate remaining queries
+        return remaining
+    except Exception:
+        # Fallback to 10 if storage access fails
+        return 10
+
 @app.route('/', methods=['GET', 'POST'])
 @limiter.limit("10 per day")  # Explicitly apply limit to this route
 def index():
+    # Get remaining queries to pass to template
+    remaining_queries = get_remaining_queries()
+    
     if request.method == 'POST':
         zipcode = request.form['zipcode']
         searchquery = request.form['searchQuery'].strip().lower()  # Use searchQuery from form
@@ -45,7 +69,7 @@ def index():
             # Convert zip code or city/state to coordinates
             location = geolocator.geocode(f"{zipcode}, USA")
             if not location:
-                return render_template('index.html', error="Invalid zip code or location")
+                return render_template('index.html', error="Invalid zip code or location", remaining_queries=remaining_queries)
 
             lat, lng = location.latitude, location.longitude
 
@@ -89,14 +113,15 @@ def index():
             return render_template('results.html', restaurants=restaurants, zipcode=zipcode, searchquery=searchquery, radius=distance)
         
         except Exception as e:
-            return render_template('index.html', error=str(e))
+            return render_template('index.html', error=str(e), remaining_queries=remaining_queries)
     
-    return render_template('index.html')
+    return render_template('index.html', remaining_queries=remaining_queries)
 
 # Custom error handler for rate limit exceeded
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    return render_template('index.html', error="You've reached the daily search limit (10 searches). Please try again tomorrow."), 429
+    remaining_queries = get_remaining_queries()
+    return render_template('index.html', error="You've reached the daily search limit (10 searches). Please try again tomorrow.", remaining_queries=remaining_queries), 429
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
