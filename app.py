@@ -26,25 +26,28 @@ def calculate_score(rating: float, review_count: int) -> float:
 def index():
     if request.method == 'POST':
         zipcode = request.form['zipcode']
-        searchquery = request.form.get('searchquery', 'restaurant').strip().lower()  # Clean and default to 'restaurant'
-        radius = request.form.get('radius', 4.35)  # Default to 4.35 miles (~7000 meters)
+        searchquery = request.form['searchQuery'].strip().lower()  # Use searchQuery from form
+        distance = request.form.get('distance', '10')  # Default to 10 miles
         try:
-            # Convert radius to meters (1 mile = 1609.34 meters)
-            radius = int(float(radius) * 1609.34)
+            # Convert distance to meters (1 mile = 1609.34 meters)
+            radius = int(float(distance) * 1609.34)
 
-            # Convert zip code to coordinates
+            # Convert zip code or city/state to coordinates
             location = geolocator.geocode(f"{zipcode}, USA")
             if not location:
-                return render_template('index.html', error="Invalid zip code")
-            
+                return render_template('index.html', error="Invalid zip code or location")
+
             lat, lng = location.latitude, location.longitude
 
-            # Search for places based on query
-            places_result = gmaps.places_nearby(
+            # Construct query for Text Search
+            query = f"{searchquery} restaurants"
+            
+            # Search for places using Text Search
+            places_result = gmaps.places(
+                query=query,
                 location=(lat, lng),
                 radius=radius,
-                type='restaurant',  # Restrict to restaurants
-                keyword=searchquery if searchquery != 'restaurant' else None  # Use keyword only for specific cuisines
+                type='restaurant'  # Restrict to restaurants
             )
 
             restaurants = []
@@ -73,7 +76,7 @@ def index():
             # Sort by score (descending)
             restaurants.sort(key=lambda x: x['weighted_score'], reverse=True)
 
-            return render_template('results.html', restaurants=restaurants, zipcode=zipcode, searchquery=searchquery, radius=radius)
+            return render_template('results.html', restaurants=restaurants, zipcode=zipcode, searchquery=searchquery, radius=distance)
         
         except Exception as e:
             return render_template('index.html', error=str(e))
