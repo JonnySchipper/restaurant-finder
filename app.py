@@ -26,8 +26,8 @@ def calculate_score(rating: float, review_count: int) -> float:
 def index():
     if request.method == 'POST':
         zipcode = request.form['zipcode']
-        searchquery = request.form.get('searchquery', 'restaurant')  # Default to 'restaurant' if not provided
-        radius = request.form.get('radius', 4.35)  # Default to 4.35 miles (~7000 meters) if not provided
+        searchquery = request.form.get('searchquery', 'restaurant').strip().lower()  # Clean and default to 'restaurant'
+        radius = request.form.get('radius', 4.35)  # Default to 4.35 miles (~7000 meters)
         try:
             # Convert radius to meters (1 mile = 1609.34 meters)
             radius = int(float(radius) * 1609.34)
@@ -42,8 +42,9 @@ def index():
             # Search for places based on query
             places_result = gmaps.places_nearby(
                 location=(lat, lng),
-                radius=radius,  # Use the user-provided radius
-                keyword=searchquery  # Use the search query
+                radius=radius,
+                type='restaurant',  # Restrict to restaurants
+                keyword=searchquery if searchquery != 'restaurant' else None  # Use keyword only for specific cuisines
             )
 
             restaurants = []
